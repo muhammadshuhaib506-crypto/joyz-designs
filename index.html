@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Joyz Designs</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
 <meta name="description" content="Joyz Designs. Your dream online store is coming soon.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,6 +85,14 @@ canvas#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z
 .brand{font-family:var(--display);font-style:italic;font-weight:500;font-size:clamp(5rem,16vw,11rem);line-height:.92;letter-spacing:-.02em;
   background:var(--foil);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 6px 30px rgba(212,167,79,.3));animation:foil 6s ease-in-out infinite;padding:0 .08em}
+.brand-logo{position:relative;width:min(600px,84vw);margin:6px 0 2px;line-height:0}
+.brand-logo img{width:100%;height:auto;display:block;filter:drop-shadow(0 6px 28px rgba(212,167,79,.35))}
+.brand-logo::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(100deg,transparent 40%,rgba(255,250,228,.85) 50%,transparent 60%) 0 0/300% 100% no-repeat;
+  -webkit-mask:url(logo.png) center/contain no-repeat;mask:url(logo.png) center/contain no-repeat;
+  animation:shine 4.5s ease-in-out 3.4s infinite;background-position:150% 0}
+@keyframes shine{0%{background-position:150% 0}55%,100%{background-position:-50% 0}}
+.v-logo{height:46px;width:auto;display:block}
 .designs{font-weight:500;font-size:clamp(.8rem,2vw,1.05rem);letter-spacing:.9em;padding-left:.9em;color:var(--gold);text-transform:uppercase}
 .rule{display:flex;align-items:center;gap:14px;color:var(--gold);margin:22px 0 12px;width:min(420px,80vw)}
 .rule::before,.rule::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
@@ -183,6 +193,8 @@ canvas#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z
   .bunting{top:66px}
   .valance-text{font-size:.6rem;letter-spacing:.35em;gap:10px}
   .valance-text .side{display:none}
+  .v-logo{height:36px}
+  .brand-logo{width:min(300px,78vw)}
   .reveal{padding:118px 18px 70px}
   .seal{width:112px;height:112px}
   .seal span{font-size:3rem}
@@ -200,7 +212,7 @@ canvas#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z
 @media (max-height:700px){
   .reveal{padding-top:104px}
   .bday{font-size:2.3rem}
-  .brand{font-size:clamp(3.8rem,13vw,6.6rem)}
+  .brand-logo{width:min(440px,70vw)}
   .soon{margin-top:14px}
   .rule{margin:12px 0 6px}
 }
@@ -295,8 +307,7 @@ canvas#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z
     <div class="inner">
       <p class="bday r r1">Happy Birthday</p>
       <p class="to r r2">Your birthday gift is a dream come true</p>
-      <h1 class="brand r r3">Joyz</h1>
-      <p class="designs r r3">Designs</p>
+      <h1 class="brand-logo r r3"><img src="logo.png" alt="Joyz Designs" width="1100" height="353"></h1>
       <div class="rule r r4" aria-hidden="true">&#10022;</div>
       <p class="dream r r4">Your dream online store is <em>becoming reality.</em></p>
       <p class="soon r r6"><i></i><span>Coming Soon</span><i></i></p>
@@ -319,7 +330,7 @@ canvas#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z
   </div>
 
   <div class="valance">
-    <div class="valance-text"><span class="side">Est. 2026</span><b>Joyz Designs</b><span class="side">Kerala</span></div>
+    <div class="valance-text"><span class="side">Est. 2026</span><img class="v-logo" src="logo.png" alt="Joyz Designs" width="1100" height="353"><span class="side">Kerala</span></div>
   </div>
 
   <div class="opener">

@@ -1,0 +1,73 @@
+# For every pull request, uploads the theme to its own unpublished "PR #N preview"
+# theme in the store and comments a preview link. The preview theme is deleted
+# when the pull request is closed or merged. Customers never see it.
+name: PR preview theme
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths: ["theme/**"]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+env:
+  SHOPIFY_FLAG_STORE: 5tnxf5-1g.myshopify.com
+  SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOPIFY_CLI_THEME_TOKEN }}
+  THEME_NAME: "PR #${{ github.event.pull_request.number }} preview"
+
+jobs:
+  preview:
+    # Secrets are not available to pull requests from forks.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Shopify CLI
+        run: npm install -g @shopify/cli@3
+
+      - name: Find this PR's preview theme
+        id: find
+        run: |
+          if [ -z "$SHOPIFY_CLI_THEME_TOKEN" ]; then
+            echo "::error::Add the SHOPIFY_CLI_THEME_TOKEN secret first (see CI-CD.md)."; exit 1; fi
+          id=$(shopify theme list --role unpublished --json \
+            | jq -r --arg n "$THEME_NAME" '[.[] | select(.name == $n)][0].id // empty')
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to the preview theme
+        if: github.event.action != 'closed'
+        id: push
+        run: |
+          if [ -n "${{ steps.find.outputs.id }}" ]; then
+            out=$(shopify theme push --path theme --theme "${{ steps.find.outputs.id }}" --json)
+          else
+            out=$(shopify theme push --path theme --unpublished --theme "$THEME_NAME" --json)
+          fi
+          echo "$out"
+          id=$(echo "$out" | jq -r '.theme.id')
+          echo "url=https://$SHOPIFY_FLAG_STORE/?preview_theme_id=$id" >> "$GITHUB_OUTPUT"
+          echo "editor=$(echo "$out" | jq -r '.theme.editor_url // empty')" >> "$GITHUB_OUTPUT"
+
+      - name: Comment the preview link
+        if: github.event.action == 'opened' || github.event.action == 'reopened'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "Preview this change: ${{ steps.push.outputs.url }}
+          Theme editor: ${{ steps.push.outputs.editor }}
+          (Unpublished theme, customers do not see it. It updates on every new commit and is deleted when this PR closes.)"
+
+      - name: Delete the preview theme
+        if: github.event.action == 'closed' && steps.find.outputs.id != ''
+        run: shopify theme delete --theme "${{ steps.find.outputs.id }}" --force

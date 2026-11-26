@@ -1,0 +1,38 @@
+# Checks the Shopify theme code for errors on every pull request and push to main.
+name: Theme check
+
+on:
+  pull_request:
+    paths: ["theme/**", ".github/workflows/theme-check.yml"]
+  push:
+    branches: [main]
+    paths: ["theme/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Skip if the theme has not been synced yet
+        id: present
+        run: |
+          if [ -f theme/layout/theme.liquid ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else
+            echo "::notice::theme/ is empty. Run the 'Sync theme from Shopify' workflow first."
+            echo "ok=false" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/setup-node@v4
+        if: steps.present.outputs.ok == 'true'
+        with:
+          node-version: 20
+
+      - name: Install Shopify CLI
+        if: steps.present.outputs.ok == 'true'
+        run: npm install -g @shopify/cli@3
+
+      - name: Run Theme Check
+        if: steps.present.outputs.ok == 'true'
+        run: shopify theme check --path theme --fail-level error

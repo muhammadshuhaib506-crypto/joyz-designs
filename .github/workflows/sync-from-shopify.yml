@@ -1,0 +1,55 @@
+# Downloads the theme from the store into theme/ and commits any changes to main.
+# Keeps GitHub up to date with edits made in the Shopify admin or theme editor.
+# Runs every day at 02:30 India time, and on demand from the Actions tab.
+name: Sync theme from Shopify
+
+on:
+  schedule:
+    - cron: "0 21 * * *" # 21:00 UTC = 02:30 IST
+  workflow_dispatch:
+    inputs:
+      theme_id:
+        description: "Theme ID to download (leave empty for the live theme)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-live
+  cancel-in-progress: false
+
+env:
+  SHOPIFY_FLAG_STORE: 5tnxf5-1g.myshopify.com
+  SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOPIFY_CLI_THEME_TOKEN }}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Shopify CLI
+        run: npm install -g @shopify/cli@3
+
+      - name: Download the theme
+        run: |
+          if [ -z "$SHOPIFY_CLI_THEME_TOKEN" ]; then
+            echo "::error::Add the SHOPIFY_CLI_THEME_TOKEN secret first (see CI-CD.md)."; exit 1; fi
+          mkdir -p theme
+          if [ -n "${{ inputs.theme_id }}" ]; then target="--theme ${{ inputs.theme_id }}"; else target="--live"; fi
+          shopify theme pull --path theme $target
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add theme
+          if git diff --cached --quiet; then echo "No changes."; exit 0; fi
+          # [skip ci] stops this commit from triggering a deploy back to the store.
+          git commit -m "Sync theme from Shopify [skip ci]"
+          git push

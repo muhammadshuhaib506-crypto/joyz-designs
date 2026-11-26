@@ -1,0 +1,55 @@
+# Uploads the theme in theme/ to the LIVE store theme.
+#
+# Runs automatically on every push to main ONLY when the repository variable
+# AUTO_DEPLOY_LIVE is set to "true". Until then nothing goes live by itself;
+# you can still run it by hand from the Actions tab ("Run workflow").
+#
+# Safety: files that exist only in the store are never deleted (--nodelete), and
+# config/settings_data.json is not overwritten, so colours/fonts/content you
+# change in the Shopify theme editor are kept.
+name: Deploy theme to live store
+
+on:
+  push:
+    branches: [main]
+    paths: ["theme/**"]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type LIVE to upload the theme to the live store'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-live
+  cancel-in-progress: false
+
+env:
+  SHOPIFY_FLAG_STORE: 5tnxf5-1g.myshopify.com
+  SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOPIFY_CLI_THEME_TOKEN }}
+
+jobs:
+  deploy:
+    if: >-
+      (github.event_name == 'push' && vars.AUTO_DEPLOY_LIVE == 'true') ||
+      (github.event_name == 'workflow_dispatch' && inputs.confirm == 'LIVE')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Shopify CLI
+        run: npm install -g @shopify/cli@3
+
+      - name: Theme Check (stop if there are errors)
+        run: shopify theme check --path theme --fail-level error
+
+      - name: Upload to the live theme
+        run: |
+          shopify theme push --path theme --live --allow-live --nodelete \
+            --ignore config/settings_data.json

@@ -29,24 +29,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Skip until setup is done
+        id: ready
+        run: |
+          if [ -z "$SHOPIFY_CLI_THEME_TOKEN" ]; then
+            echo "::notice::No preview yet: add the SHOPIFY_CLI_THEME_TOKEN secret (see CI-CD.md)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          elif [ ! -f theme/layout/theme.liquid ] && [ "${{ github.event.action }}" != "closed" ]; then
+            echo "::notice::No preview yet: theme/ is empty. Run the 'Sync theme from Shopify' workflow first."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else echo "ok=true" >> "$GITHUB_OUTPUT"; fi
+
       - uses: actions/setup-node@v4
+        if: steps.ready.outputs.ok == 'true'
         with:
           node-version: 20
 
       - name: Install Shopify CLI
+        if: steps.ready.outputs.ok == 'true'
         run: npm install -g @shopify/cli@3
 
       - name: Find this PR's preview theme
+        if: steps.ready.outputs.ok == 'true'
         id: find
         run: |
-          if [ -z "$SHOPIFY_CLI_THEME_TOKEN" ]; then
-            echo "::error::Add the SHOPIFY_CLI_THEME_TOKEN secret first (see CI-CD.md)."; exit 1; fi
           id=$(shopify theme list --role unpublished --json \
             | jq -r --arg n "$THEME_NAME" '[.[] | select(.name == $n)][0].id // empty')
           echo "id=$id" >> "$GITHUB_OUTPUT"
 
       - name: Upload to the preview theme
-        if: github.event.action != 'closed'
+        if: steps.ready.outputs.ok == 'true' && github.event.action != 'closed'
         id: push
         run: |
           if [ -n "${{ steps.find.outputs.id }}" ]; then
@@ -60,7 +72,7 @@ jobs:
           echo "editor=$(echo "$out" | jq -r '.theme.editor_url // empty')" >> "$GITHUB_OUTPUT"
 
       - name: Comment the preview link
-        if: github.event.action == 'opened' || github.event.action == 'reopened'
+        if: steps.push.outputs.url != '' && steps.find.outputs.id == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
